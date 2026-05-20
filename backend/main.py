@@ -7,12 +7,24 @@ from app.models.document import Document
 from app.services.qdrant_service import create_collection
 
 
+from fastapi.middleware.cors import CORSMiddleware
+
 Base.metadata.create_all(bind=engine)
 
 create_collection()
 
 
 app = FastAPI(title="Resume RAG Backend")
+
+# Enable CORS for frontend API calls
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app.include_router(
     upload.router,

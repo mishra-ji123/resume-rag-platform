@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Custom utility colors for consistent SaaS theme */
+@layer base {
+  :root {
+    --primary-blue: #2563eb;
+    --primary-blue-hover: #1d4ed8;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}

@@ -112,4 +112,20 @@ def get_chunks_by_doc_id(doc_id, limit=100):
     return results
 
 
+def delete_embeddings_by_doc_id(doc_id):
+    create_collection()
+    client.delete(
+        collection_name=COLLECTION_NAME,
+        points_selector=Filter(
+            must=[
+                FieldCondition(
+                    key="doc_id",
+                    match=MatchValue(value=doc_id)
+                )
+            ]
+        )
+    )
+
+
+
 
