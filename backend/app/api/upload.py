@@ -1,12 +1,12 @@
 from fastapi import APIRouter, UploadFile, File
 import pdfplumber
 import os
-from sentence_transformers import SentenceTransformer
 from datetime import datetime
 
 from app.core.database import SessionLocal
 from app.models.document import Document
-from app.services.qdrant_service import store_embeddings
+from app.services.qdrant_service import store_embeddings, model
+
 
 router = APIRouter(
     tags=["Upload"]
@@ -15,13 +15,11 @@ router = APIRouter(
 UPLOAD_DIR = "app/uploads/resumes"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
 
 # ----------------------------
 # Chunking Function
 # ----------------------------
-def chunk_text(text, chunk_size=1000, overlap=200):
+def chunk_text(text, chunk_size=500, overlap=200):
 
     chunks = []
     start = 0
@@ -43,15 +41,24 @@ async def upload_file(file: UploadFile = File(...)):
 
     db = SessionLocal()
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    # Read the file's name and binary contents directly
+    filename = file.filename
+    file_content = await file.read()
+
+    if not file_content:
+        db.close()
+        return {"error": "No file content received"}
+
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
 
     # Save file locally
     with open(file_path, "wb") as f:
-        f.write(await file.read())
+        f.write(file_content)
 
     # Insert DB row immediately
     doc = Document(
-        file_name=file.filename,
+        file_name=filename,
         file_path=file_path,
         upload_status="SUCCESS",
         processing_status="PROCESSING",
@@ -90,7 +97,7 @@ async def upload_file(file: UploadFile = File(...)):
 
         store_embeddings(
     doc.id,
-    file.filename,
+    filename,
     chunks,
     embeddings
 )
@@ -115,7 +122,7 @@ async def upload_file(file: UploadFile = File(...)):
             })
 
         return {
-            "filename": file.filename,
+            "filename": filename,
             "characters_extracted": len(text),
             "total_chunks": len(chunks),
             "sample_chunks": chunk_preview,

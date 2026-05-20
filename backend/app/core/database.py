@@ -1,8 +1,11 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+load_dotenv()
 
-DATABASE_URL = "mysql+pymysql://root:12345@localhost/resume_rag"
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:12345@localhost/resume_rag")
 
 
 engine = create_engine(DATABASE_URL)
