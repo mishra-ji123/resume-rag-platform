@@ -3,8 +3,6 @@ from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, Filter, FieldCondition, MatchValue
 
-from sentence_transformers import SentenceTransformer
-
 load_dotenv()
 
 QDRANT_URL = os.getenv("QDRANT_URL")
@@ -23,16 +21,9 @@ if client is None:
     # Use local persistent storage if Qdrant URL is not specified or unreachable
     client = QdrantClient(path="qdrant_db")
 
-
-
 COLLECTION_NAME = "resumes"
 
-# Initialize embedding model once to share across upload and search
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-
 def create_collection():
-
     collections = client.get_collections().collections
     names = [c.name for c in collections]
 
@@ -45,20 +36,15 @@ def create_collection():
             )
         )
 
-
 def store_embeddings(doc_id, file_name, chunks, embeddings):
     create_collection()
-
     points = []
 
     for i, embedding in enumerate(embeddings):
-
         points.append(
             PointStruct(
                 id=(doc_id * 1000) + i,
-
-                vector=embedding.tolist(),
-
+                vector=embedding.tolist() if hasattr(embedding, "tolist") else embedding,
                 payload={
                     "doc_id": doc_id,
                     "file_name": file_name,
@@ -74,24 +60,16 @@ def store_embeddings(doc_id, file_name, chunks, embeddings):
     )
     
     info = client.get_collection(COLLECTION_NAME)
-
     print("Stored vectors:", info.points_count)
-
 
 def search_embeddings(query_vector, limit=5):
     create_collection()
     results = client.query_points(
         collection_name=COLLECTION_NAME,
-        query=query_vector,
+        query=query_vector.tolist() if hasattr(query_vector, "tolist") else query_vector,
         limit=limit
     )
     return results.points
-
-
-def search_similar_chunks(query_text, limit=3):
-    query_vector = model.encode(query_text)
-    return search_embeddings(query_vector, limit=limit)
-
 
 def get_chunks_by_doc_id(doc_id, limit=100):
     create_collection()
@@ -111,7 +89,6 @@ def get_chunks_by_doc_id(doc_id, limit=100):
     )
     return results
 
-
 def delete_embeddings_by_doc_id(doc_id):
     create_collection()
     client.delete(
@@ -125,7 +102,3 @@ def delete_embeddings_by_doc_id(doc_id):
             ]
         )
     )
-
-
-
-

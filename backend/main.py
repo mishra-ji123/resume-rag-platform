@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import upload, search, resume
+from app.api.v1.routes import upload, search, resume
 from app.core.database import engine, Base
 from app.models.document import Document
 
